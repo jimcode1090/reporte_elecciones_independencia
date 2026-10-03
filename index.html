@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Reporte Electoral</title>
+<style>
+  :root{
+    --bg:#f3f4f6; --card:#fff; --ink:#111827; --muted:#6b7280; --line:#e5e7eb;
+    --accent:#1d4ed8; --accent-ink:#fff; --ok:#15803d; --warn:#b45309; --err:#b91c1c;
+    --changed:#fef3c7;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+  header{background:var(--accent);color:var(--accent-ink);padding:14px 16px 12px;position:sticky;top:0;z-index:5}
+  header h1{margin:0;font-size:18px}
+  header small{opacity:.85;font-size:13px}
+  main{padding:12px 12px 110px;max-width:680px;margin:0 auto}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+  label.lbl{display:block;font-size:14px;font-weight:600;margin:0 0 6px}
+  input,textarea{width:100%;font:inherit;font-size:16px;padding:11px 12px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;color:var(--ink)}
+  input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
+  textarea{min-height:76px;resize:vertical}
+  button{font:inherit;border:0;border-radius:10px;padding:12px 16px;cursor:pointer}
+  .btn{background:var(--accent);color:var(--accent-ink);font-weight:600}
+  .btn:disabled{opacity:.45}
+  .btn-ghost{background:#eef2ff;color:var(--accent);font-weight:600}
+  .btn-sm{padding:8px 12px;font-size:14px}
+  .row{display:flex;gap:8px;align-items:center}
+  .muted{color:var(--muted);font-size:14px}
+  .stages{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
+  .stage{flex:0 0 auto;background:#fff;border:1px solid #cbd5e1;color:var(--ink);font-weight:600;font-size:14px;padding:10px 14px}
+  .stage.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .list{margin-top:10px;max-height:55vh;overflow:auto;border-top:1px solid var(--line)}
+  .item{display:flex;gap:10px;padding:12px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+  .item:active{background:#eef2ff}
+  .num{flex:0 0 32px;height:32px;border-radius:50%;background:#eef2ff;color:var(--accent);display:grid;place-items:center;font-weight:700;font-size:14px}
+  .item b{display:block;font-size:15px}
+  .sel{border:2px solid var(--accent)}
+  .sel .name{font-size:18px;font-weight:700;margin:2px 0}
+  .group h2{font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--accent);margin:0 0 10px}
+  .field{margin-bottom:14px}
+  .field:last-child{margin-bottom:0}
+  .field.changed input,.field.changed textarea{background:var(--changed)}
+  .hint{font-size:12px;color:var(--muted);margin-top:4px}
+  .persona input{margin-bottom:6px}
+  .pp{border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px;background:#fafafa}
+  .pp-top{display:flex;gap:6px;margin-bottom:6px}
+  .pp-top select{flex:0 0 96px;font:inherit;font-size:16px;padding:10px 8px;border:1px solid #cbd5e1;border-radius:10px;background:#fff}
+  .pp-top input{margin:0}
+  .pp .row input{margin:0}
+  .pp-del{flex:0 0 auto;background:#fee2e2;color:var(--err);font-weight:700;padding:8px 12px}
+  .pp-count{font-weight:400;color:var(--muted);font-size:13px}
+  .field.changed .pp input,.field.changed .pp select{background:var(--changed)}
+  .ro{padding:11px 12px;border-radius:10px;background:#f3f4f6;color:var(--muted)}
+  .bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom));z-index:6}
+  .bar .inner{max-width:680px;margin:0 auto;display:flex;gap:8px}
+  .bar .btn{flex:1;padding:14px}
+  .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#111827;color:#fff;padding:12px 16px;border-radius:10px;font-size:15px;max-width:92vw;z-index:20;display:none}
+  .toast.ok{background:var(--ok)} .toast.err{background:var(--err)} .toast.warn{background:var(--warn)}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-end;justify-content:center;z-index:15}
+  .modal .sheet{background:#fff;width:100%;max-width:680px;border-radius:16px 16px 0 0;padding:18px 16px calc(16px + env(safe-area-inset-bottom));max-height:85vh;overflow:auto}
+  .modal h3{margin:0 0 6px;font-size:17px}
+  .chg{font-size:14px;border-bottom:1px solid var(--line);padding:8px 0;white-space:pre-wrap}
+  .chg b{display:block;font-size:12px;color:var(--muted);font-weight:600}
+  .loading{text-align:center;color:var(--muted);padding:30px 0}
+  .hidden{display:none!important}
+  select.sel-in{width:100%;font:inherit;font-size:16px;padding:11px 12px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;color:var(--ink)}
+  #btnOut{position:absolute;right:12px;top:14px;background:rgba(255,255,255,.18);color:#fff;font-size:13px;padding:7px 11px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Reporte Electoral</h1>
+  <small id="subtitle">Cargando…</small>
+  <button id="btnOut" class="hidden">Cambiar</button>
+</header>
+
+<main>
+  <!-- Ingreso -->
+  <section id="login" class="card hidden">
+    <div class="field">
+      <label class="lbl" for="reporter">Tu nombre y grado</label>
+      <input id="reporter" autocomplete="name" placeholder="Ej.: SO2 PNP Juan Pérez">
+    </div>
+    <div class="field hidden" id="zoneWrap">
+      <label class="lbl" for="zona">Zona</label>
+      <select id="zona" class="sel-in"></select>
+    </div>
+    <div class="field hidden" id="keyWrap">
+      <label class="lbl" for="clave">Clave de acceso</label>
+      <input id="clave" type="password" autocomplete="off">
+    </div>
+    <button class="btn" style="width:100%" id="btnLogin">Ingresar</button>
+    <div class="hint" id="loginMsg"></div>
+  </section>
+
+  <!-- Oficial de control -->
+  <section id="offsec" class="card hidden">
+    <div class="field">
+      <label class="lbl" for="ofSel">Oficial de control</label>
+      <select id="ofSel" class="sel-in"></select>
+    </div>
+    <div class="field hidden" id="ofKeyWrap">
+      <label class="lbl" for="ofKey">Clave del oficial</label>
+      <input id="ofKey" type="password" autocomplete="off">
+    </div>
+    <button class="btn" style="width:100%" id="btnOf">Continuar</button>
+    <div class="hint" id="ofMsg"></div>
+  </section>
+
+  <section id="app" class="hidden">
+    <div class="card">
+      <label class="lbl">Etapa del reporte</label>
+      <div class="stages" id="stages"></div>
+    </div>
+
+    <!-- Selección de local -->
+    <div class="card" id="pick">
+      <label class="lbl" for="q">Busca tu local de votación</label>
+      <input id="q" type="search" placeholder="Nombre, número o dirección" autocomplete="off">
+      <div class="list" id="list"></div>
+    </div>
+
+    <!-- Local elegido -->
+    <div class="card sel hidden" id="chosen">
+      <div class="muted" id="chN"></div>
+      <div class="name" id="chName"></div>
+      <div class="muted" id="chDir"></div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn-ghost btn-sm" id="btnChange">Cambiar local</button>
+        <button class="btn-ghost btn-sm" id="btnReload">Actualizar datos</button>
+      </div>
+    </div>
+
+    <div id="form"></div>
+  </section>
+  <div id="boot" class="loading">Cargando…</div>
+</main>
+
+<div class="bar hidden" id="bar">
+  <div class="inner"><button class="btn" id="btnSave" disabled>Guardar</button></div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="sheet">
+    <h3>¿Guardar en este local?</h3>
+    <div class="name" id="mdName" style="font-weight:700;font-size:17px;color:var(--accent);margin-bottom:8px"></div>
+    <div id="mdList"></div>
+    <div class="row" style="margin-top:14px">
+      <button class="btn-ghost" style="flex:1" id="mdCancel">Revisar</button>
+      <button class="btn" style="flex:1" id="mdOk">Confirmar</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===================== CONFIGURACIÓN =====================
+   Pega aquí la URL de tu Apps Script (la que termina en /exec) */
+var API_URL = 'https://script.google.com/macros/s/AKfycbxWOdO6k0ltYbOEMJ5MCX6Ma3BHPOC5YfDHuZBr8k2Q1O926YaZF_X0-Do4f-c9wNyABw/exec';
+/* ========================================================= */
+</script>
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  var S = { clave:'', oficial:'', claveOf:'', oficiales:[], pickOf:false, reporter:'', sheets:[], sheet:null, fields:[], schools:[], school:null, values:{}, initial:{} };
+
+  // ---------- almacenamiento local (comodidad) ----------
+  function store(k, v){ try{ if(v===undefined) return localStorage.getItem('rep_'+k); localStorage.setItem('rep_'+k, v); }catch(e){ return null; } }
+
+  // ---------- llamadas al servidor ----------
+  function call1(fn, args){
+    if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(API_URL)) return Promise.reject('Falta configurar API_URL en index.html');
+    var ctrl = window.AbortController ? new AbortController() : null;
+    var timer = setTimeout(function(){ if(ctrl) ctrl.abort(); }, 45000);
+    return fetch(API_URL, {
+      method: 'POST', redirect: 'follow', signal: ctrl ? ctrl.signal : undefined,
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },   // evita preflight CORS
+      body: JSON.stringify({ fn: fn, args: args })
+    }).then(function(r){
+      if(!r.ok) throw new Error('NetworkError HTTP ' + r.status);
+      return r.json();
+    }).then(function(j){
+      clearTimeout(timer);
+      if(!j || !j.ok) return Promise.reject((j && j.error) || 'Respuesta inválida del servidor');
+      return j.data;
+    }, function(e){
+      clearTimeout(timer);
+      return Promise.reject('NetworkError ' + (e && e.name === 'AbortError' ? 'timeout' : (e && e.message ? e.message : e)));
+    });
+  }
+  // Errores pasajeros (señal móvil, servidor ocupado): se reintenta solo.
+  var TRANSIENT = /NetworkError|load failed|HTTP 0|simult|too many|invoked too|timed out|timeout|tiempo de espera|internal error|error interno|try again|unavailable|failed to fetch|Service Spreadsheets/i;
+  var DELAYS = [1500, 3000, 6000, 10000, 15000];
+  function call(fn){
+    var args = Array.prototype.slice.call(arguments, 1), attempt = 0;
+    return new Promise(function(res, rej){
+      (function go(){
+        call1(fn, args).then(res, function(msg){
+          if(TRANSIENT.test(msg) && attempt < DELAYS.length){
+            var d = DELAYS[attempt++];
+            toast('Conexión inestable, reintentando (' + attempt + '/' + DELAYS.length + ')…', 'warn', d + 800);
+            setTimeout(go, d);
+          } else rej(TRANSIENT.test(msg) ? 'NET' : clean(msg));
+        });
+      })();
+    });
+  }
+  function clean(m){ return String(m).replace(/^(Exception|Error):\s*/i,'').replace(/^(SIN_ACCESO|ZONA|CLAVE|CLAVE_OF|OFICIAL):\s*/,''); }
+  function ctx(){ return { zona:S.zona, clave:S.clave, oficial:S.oficial, claveOf:S.claveOf }; }
+  function errText(e){ return e === 'NET' ? 'Sin conexión o servidor ocupado. Revisa tu señal e inténtalo de nuevo.' : e; }
+
+  // ---------- borradores (nada se pierde si falla la señal) ----------
+  function dKey(){ return 'draft|' + S.zona + '|' + S.sheet + '|' + (S.school ? S.school.local : ''); }
+  function saveDraft(){
+    if(!S.school) return;
+    var d = {};
+    changes().forEach(function(c){ d[c.col] = c.val; });
+    store(dKey(), Object.keys(d).length ? JSON.stringify(d) : '');
+  }
+  function loadDraft(){ try{ return JSON.parse(store(dKey()) || 'null'); }catch(e){ return null; } }
+
+  var toastT;
+  function toast(msg, kind, ms){
+    var t = $('toast'); t.textContent = msg; t.className = 'toast ' + (kind||''); t.style.display = 'block';
+    clearTimeout(toastT); toastT = setTimeout(function(){ t.style.display='none'; }, ms || 3500);
+  }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function n(s){ return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase(); }
+
+  // ---------- helpers de formato ----------
+  function toTime(s){
+    var m = String(s||'').match(/(\d{1,2}):(\d{2})(?::\d{2})?\s*([ap])?/i);
+    if(!m) return '';
+    var h = +m[1];
+    if(m[3]){ var p = m[3].toLowerCase(); if(p==='p' && h<12) h+=12; if(p==='a' && h===12) h=0; }
+    return (h<10?'0':'')+h+':'+m[2];
+  }
+  function toNum(s){ var x = String(s||'').replace(/[^\d.,-]/g,'').replace(',', '.'); return x===''?'':String(Number(x)); }
+  function parsePersona(s){
+    var o = {nom:'', dni:'', tel:''};
+    String(s||'').split(/\n/).map(function(l){ return l.trim(); }).filter(Boolean).forEach(function(l){
+      var u = n(l);
+      if(u.indexOf('DNI')===0) o.dni = l.replace(/^dni\s*[:.\-]?\s*/i,'');
+      else if(u.indexOf('TEL')===0 || u.indexOf('CEL')===0) o.tel = l.replace(/^(tel[eé]fono|telf?\.?|cel(ular)?)\s*[:.\-]?\s*/i,'');
+      else if(!o.nom) o.nom = l; else o.nom += ' ' + l;
+    });
+    if(/X{3}/i.test(o.nom)) o.nom = '';
+    return o;
+  }
+  var INST_RE = /^(PNP|FF\.?\s?AA\.?|EP|FAP|MGP|EJ[EÉ]RCITO|MARINA)\s*[-·:|]\s*/i;
+  function parsePersonas(s){
+    var blocks = String(s||'').split(/\n\s*\n/).map(function(b){ return b.trim(); }).filter(Boolean);
+    var out = blocks.map(function(b){
+      var p = parsePersona(b), m = p.nom.match(INST_RE);
+      p.inst = 'PNP';
+      if(m){ p.inst = /^PNP/i.test(m[1]) ? 'PNP' : 'FF.AA'; p.nom = p.nom.replace(INST_RE,''); }
+      return p;
+    }).filter(function(p){ return p.nom || p.dni || p.tel; });
+    return out.length ? out : [{inst:'PNP', nom:'', dni:'', tel:''}];
+  }
+  function composePersonas(list){
+    return list.filter(function(p){ return (p.nom||p.dni||p.tel).trim(); }).map(function(p){
+      return composePersona({nom:(p.inst? p.inst+' - ':'') + p.nom.trim(), dni:p.dni, tel:p.tel});
+    }).join('\n\n');
+  }
+  function ppHtml(p){
+    return '<div class="pp"><div class="pp-top"><select class="pp-i">'+
+      ['PNP','FF.AA'].map(function(o){ return '<option'+(p.inst===o?' selected':'')+'>'+o+'</option>'; }).join('')+
+      '</select><input class="pp-n" placeholder="Grado y nombre" value="'+esc(p.nom)+'">'+
+      '<button type="button" class="pp-del" data-del title="Quitar">✕</button></div>'+
+      '<div class="row"><input class="pp-d" inputmode="numeric" placeholder="DNI" value="'+esc(p.dni)+'">'+
+      '<input class="pp-t" type="tel" placeholder="Teléfono" value="'+esc(p.tel)+'"></div></div>';
+  }
+  function composePersona(o){
+    var out = [];
+    if(o.nom) out.push(o.nom.trim());
+    if(o.dni) out.push('DNI: ' + o.dni.trim());
+    if(o.tel) out.push('TEL: ' + o.tel.trim());
+    return out.join('\n');
+  }
+
+  // ---------- arranque ----------
+  function getParam(cb){
+    var z = '';
+    try{ z = new URLSearchParams(location.search).get('zona') || ''; }catch(e){}
+    cb(z);
+  }
+  function zoneInfo(z){ return S.zones.filter(function(x){ return n(x.zona) === n(z); })[0]; }
+  function boot(){
+    getParam(function(pz){
+      call('apiZones').then(function(zs){
+        S.zones = zs;
+        var locked = pz && zoneInfo(pz);
+        S.locked = !!locked;
+        var z = locked ? locked.zona : (zs.length === 1 ? zs[0].zona : (zoneInfo(store('zona')||'') || {}).zona);
+        S.zona = z == null ? null : z;
+        S.reporter = store('reporter') || '';
+        S.clave = S.zona != null ? (store('clave|' + S.zona) || '') : '';
+        $('zona').innerHTML = '<option value="">— Elige tu zona —</option>' + zs.map(function(x){
+          return '<option'+(S.zona!=null && n(x.zona)===n(S.zona)?' selected':'')+'>'+esc(x.zona)+'</option>'; }).join('');
+        $('zoneWrap').classList.toggle('hidden', zs.length < 2 || S.locked);
+        if(S.reporter && S.zona != null){
+          call('apiInit', ctx()).then(function(r){ $('boot').classList.add('hidden'); r.ok ? start(r) : showLogin(); })
+            .catch(function(e){ $('boot').textContent = 'Error: ' + errText(e); });
+        } else { $('boot').classList.add('hidden'); showLogin(); }
+      }).catch(function(e){ $('boot').textContent = 'Error: ' + errText(e); });
+    });
+  }
+  function showLogin(){
+    $('app').classList.add('hidden'); $('offsec').classList.add('hidden'); $('bar').classList.add('hidden'); $('btnOut').classList.add('hidden');
+    $('subtitle').textContent = S.locked ? 'Zona ' + S.zona : 'Identifícate para continuar';
+    $('reporter').value = S.reporter; $('clave').value = S.clave; $('loginMsg').textContent = '';
+    updateKey(); $('login').classList.remove('hidden');
+  }
+  function updateKey(){
+    var z = S.locked || S.zones.length < 2 ? (S.zones.length===1 ? S.zones[0] : zoneInfo(S.zona)) : zoneInfo($('zona').value);
+    $('keyWrap').classList.toggle('hidden', !(z && z.needsKey));
+  }
+  $('zona').onchange = function(){ $('clave').value = store('clave|' + $('zona').value) || ''; updateKey(); };
+  $('btnOut').onclick = function(){ if(dirtyCount()) saveDraft(); S.pickOf = true; showLogin(); };
+
+  $('btnLogin').onclick = function(){
+    var name = $('reporter').value.trim();
+    if(!name){ $('loginMsg').textContent = 'Escribe tu nombre.'; return; }
+    var z = S.locked ? S.zona : (S.zones.length === 1 ? S.zones[0].zona : $('zona').value);
+    if(z == null || (S.zones.length > 1 && !z)){ $('loginMsg').textContent = 'Elige tu zona.'; return; }
+    S.reporter = name; S.zona = z; S.clave = $('clave').value.trim();
+    $('btnLogin').disabled = true; $('loginMsg').textContent = 'Ingresando…';
+    call('apiInit', ctx()).then(function(r){
+      $('btnLogin').disabled = false;
+      if(!r.ok){ $('loginMsg').textContent = 'Clave incorrecta.'; $('keyWrap').classList.remove('hidden'); return; }
+      store('reporter', S.reporter); store('zona', S.zona); store('clave|' + S.zona, S.clave);
+      $('login').classList.add('hidden'); start(r);
+    }).catch(function(e){ $('btnLogin').disabled=false; $('loginMsg').textContent = 'Error: ' + errText(e); });
+  };
+
+  // ---------- oficial de control ----------
+  // Si la zona define oficiales, cada agente solo ve los locales de su oficial.
+  function start(r){
+    S.oficiales = r.oficiales || [];
+    if(!S.oficiales.length){ S.oficial = ''; S.claveOf = ''; return begin(r); }
+    var saved = store('oficial|' + S.zona);
+    var o = !S.pickOf && S.oficiales.filter(function(x){ return n(x.oficial) === n(saved); })[0];
+    if(!o) return showOficial(r);
+    S.oficial = o.oficial; S.claveOf = store('claveof|' + S.zona + '|' + o.oficial) || '';
+    call('apiOficial', ctx()).then(function(v){ v.ok ? begin(r) : showOficial(r); })
+      .catch(function(e){ showOficial(r, errText(e)); });
+  }
+  function showOficial(r, msg){
+    S.initR = r;
+    $('app').classList.add('hidden'); $('bar').classList.add('hidden'); $('login').classList.add('hidden');
+    $('subtitle').textContent = S.reporter + (S.zona ? ' · Zona ' + S.zona : '');
+    $('btnOut').classList.remove('hidden');
+    $('ofSel').innerHTML = '<option value="">— Elige tu oficial —</option>' + S.oficiales.map(function(x){
+      return '<option'+(n(x.oficial)===n(S.oficial)?' selected':'')+'>'+esc(x.oficial)+'</option>'; }).join('');
+    $('ofKey').value = ''; $('ofMsg').textContent = msg || '';
+    updateOfKey(); $('offsec').classList.remove('hidden');
+  }
+  function updateOfKey(){
+    var o = S.oficiales.filter(function(x){ return x.oficial === $('ofSel').value; })[0];
+    $('ofKeyWrap').classList.toggle('hidden', !(o && o.needsKey));
+    if(o && o.needsKey && !$('ofKey').value) $('ofKey').value = store('claveof|' + S.zona + '|' + o.oficial) || '';
+  }
+  $('ofSel').onchange = updateOfKey;
+  $('btnOf').onclick = function(){
+    var name = $('ofSel').value;
+    if(!name){ $('ofMsg').textContent = 'Elige tu oficial de control.'; return; }
+    S.oficial = name; S.claveOf = $('ofKey').value.trim();
+    $('btnOf').disabled = true; $('ofMsg').textContent = 'Verificando…';
+    call('apiOficial', ctx()).then(function(v){
+      $('btnOf').disabled = false;
+      if(!v.ok){ $('ofMsg').textContent = 'Clave incorrecta.'; $('ofKeyWrap').classList.remove('hidden'); return; }
+      store('oficial|' + S.zona, S.oficial); store('claveof|' + S.zona + '|' + S.oficial, S.claveOf);
+      S.pickOf = false; $('offsec').classList.add('hidden'); begin(S.initR);
+    }).catch(function(e){ $('btnOf').disabled = false; $('ofMsg').textContent = 'Error: ' + errText(e); });
+  };
+
+  function begin(r){
+    S.pickOf = false;
+    S.sheets = r.sheets; S.sheet = null;
+    $('subtitle').textContent = S.reporter + (S.zona ? ' · Zona ' + S.zona : '') + (S.oficial ? ' · ' + S.oficial : '');
+    $('btnOut').classList.remove('hidden');
+    $('app').classList.remove('hidden');
+    var st = $('stages'); st.innerHTML = '';
+    r.sheets.forEach(function(sh){
+      var b = document.createElement('button'); b.className = 'stage'; b.textContent = sh.label; b.dataset.name = sh.name;
+      b.onclick = function(){ if(sh.name===S.sheet) return; if(dirtyCount() && !S.warned){ S.warned=true; toast('Tienes cambios sin guardar. Guárdalos o toca otra vez para cambiar (quedan como borrador).','warn',5000); return; } S.warned=false; selectSheet(sh.name); };
+      st.appendChild(b);
+    });
+    var last = store('sheet|' + S.zona);
+    var exists = r.sheets.some(function(s){ return s.name === last; });
+    if(r.sheets.length) selectSheet(exists ? last : r.sheets[0].name);
+    else $('form').innerHTML = '<div class="card">No se encontraron pestañas con el formato esperado.</div>';
+  }
+
+  // ---------- etapa ----------
+  function selectSheet(name){
+    S.sheet = name; store('sheet|' + S.zona, name);
+    Array.prototype.forEach.call(document.querySelectorAll('.stage'), function(b){ b.classList.toggle('on', b.dataset.name===name); });
+    $('form').innerHTML = '<div class="loading">Cargando…</div>';
+    $('bar').classList.add('hidden');
+    call('apiSheet', ctx(), name).then(function(r){
+      S.fields = r.fields; S.schools = r.schools;
+      var lastLocal = store('local|' + S.zona);
+      var s = S.schools.filter(function(x){ return x.local === lastLocal; })[0];
+      if(s) chooseSchool(s); else showPicker();
+    }).catch(function(e){ $('form').innerHTML = '<div class="card">Error: '+esc(errText(e))+'</div>'; });
+  }
+
+  // ---------- búsqueda de local ----------
+  function showPicker(){
+    S.school = null;
+    $('pick').classList.remove('hidden'); $('chosen').classList.add('hidden');
+    $('form').innerHTML = ''; $('bar').classList.add('hidden');
+    $('q').value = ''; renderList();
+  }
+  function renderList(){
+    var q = n($('q').value.trim());
+    var items = S.schools.filter(function(s){ return !q || n(s.n+' '+s.local+' '+s.dir).indexOf(q) >= 0; });
+    $('list').innerHTML = items.length ? items.map(function(s, i){
+      return '<div class="item" data-i="'+S.schools.indexOf(s)+'"><div class="num">'+esc(s.n||'•')+'</div><div><b>'+esc(s.local)+'</b><span class="muted">'+esc(s.dir)+'</span></div></div>';
+    }).join('') : '<div class="muted" style="padding:12px 4px">Sin resultados</div>';
+  }
+  $('q').oninput = renderList;
+  $('list').onclick = function(e){
+    var it = e.target.closest('.item'); if(!it) return;
+    chooseSchool(S.schools[+it.dataset.i]);
+  };
+  $('btnChange').onclick = function(){ store('local|' + S.zona,''); showPicker(); window.scrollTo(0,0); };
+  $('btnReload').onclick = function(){ if(S.school) chooseSchool(S.school); };
+
+  function chooseSchool(s){
+    S.school = s; store('local|' + S.zona, s.local);
+    $('pick').classList.add('hidden'); $('chosen').classList.remove('hidden');
+    $('chN').textContent = 'N° ' + (s.n||'-') + ' · ' + S.sheet.trim().replace(/_/g,' ');
+    $('chName').textContent = s.local; $('chDir').textContent = s.dir;
+    $('form').innerHTML = '<div class="loading">Cargando datos del local…</div>';
+    call('apiSchool', ctx(), S.sheet, s.local, s.row).then(function(r){
+      S.values = r.values; renderForm(); window.scrollTo(0,0);
+    }).catch(function(e){ $('form').innerHTML = '<div class="card">Error: '+esc(errText(e))+'</div>'; });
+  }
+
+  // ---------- formulario ----------
+  function renderForm(){
+    S.override = null;
+    buildForm();
+    S.initial = {};
+    S.fields.forEach(function(f){ S.initial[f.col] = readField(f); });
+    var d = loadDraft(), pend = 0;
+    if(d){
+      Object.keys(d).forEach(function(c){ if(S.initial[c] !== undefined && S.initial[c] !== null && d[c] !== S.initial[c]) pend++; else delete d[c]; });
+      if(pend){ S.override = d; buildForm(); toast('Se recuperó lo que no se había enviado (' + pend + ' campo' + (pend>1?'s':'') + '). Revisa y toca Guardar.', 'warn', 6000); }
+      else store(dKey(), '');
+    }
+    S.fields.forEach(function(f){
+      var fd = document.querySelector('.field[data-col="'+f.col+'"]');
+      if(fd) fd.classList.toggle('changed', readField(f) !== S.initial[f.col]);
+    });
+    $('form').oninput = onInput;
+    Array.prototype.forEach.call(document.querySelectorAll('textarea'), autoGrow);
+    $('bar').classList.remove('hidden'); updateBar();
+  }
+  function buildForm(){
+    var groups = [], byG = {};
+    S.fields.forEach(function(f){
+      var g = f.group || f.label;
+      if(!byG[g]){ byG[g] = []; groups.push(g); }
+      byG[g].push(f);
+    });
+    var html = groups.map(function(g){
+      var fs = byG[g];
+      var single = fs.length === 1 && !fs[0].group;
+      return '<div class="card group">' + (single ? '' : '<h2>'+esc(g)+'</h2>') + fs.map(fieldHtml).join('') + '</div>';
+    }).join('');
+    $('form').innerHTML = html;
+  }
+
+  function fieldHtml(f){
+    var cur = S.values[f.col] || {v:''};
+    var id = 'f'+f.col, v = (S.override && S.override[f.col] != null) ? S.override[f.col] : cur.v;
+    var title = f.group ? f.label : f.label;
+    var head = '<label class="lbl" for="'+id+'">'+esc(title)+'</label>';
+    if(cur.formula) return '<div class="field">'+head+'<div class="ro">'+esc(v||'—')+'</div><div class="hint">Calculado en la hoja</div></div>';
+    switch(f.type){
+      case 'percent':
+        return '<div class="field">'+head+'<div class="ro" id="'+id+'">'+esc(v||'—')+'</div><div class="hint">Se calcula solo al guardar</div></div>';
+      case 'number':
+        return '<div class="field" data-col="'+f.col+'">'+head+'<input id="'+id+'" type="number" inputmode="numeric" min="0" value="'+esc(toNum(v))+'"></div>';
+      case 'time':
+        return '<div class="field" data-col="'+f.col+'">'+head+'<div class="row"><input id="'+id+'" type="time" value="'+esc(toTime(v))+'"><button class="btn-ghost btn-sm" type="button" data-now="'+id+'">Ahora</button></div></div>';
+      case 'persona':
+        var p = parsePersona(v);
+        return '<div class="field persona" data-col="'+f.col+'">'+head+
+          '<input id="'+id+'" placeholder="Grado / cargo y nombre" value="'+esc(p.nom)+'">'+
+          '<div class="row"><input id="'+id+'_d" inputmode="numeric" placeholder="DNI" value="'+esc(p.dni)+'"><input id="'+id+'_t" type="tel" placeholder="Teléfono" value="'+esc(p.tel)+'"></div></div>';
+      case 'personas':
+        var list = parsePersonas(v);
+        return '<div class="field" data-col="'+f.col+'"><label class="lbl">'+esc(title)+' <span class="pp-count" id="'+id+'_c"></span></label>'+
+          '<div id="'+id+'">'+list.map(ppHtml).join('')+'</div>'+
+          '<button type="button" class="btn-ghost btn-sm" data-add="'+id+'">+ Agregar efectivo</button></div>';
+      case 'text':
+        return '<div class="field" data-col="'+f.col+'">'+head+'<input id="'+id+'" value="'+esc(v)+'"></div>';
+      default:
+        return '<div class="field" data-col="'+f.col+'">'+head+'<textarea id="'+id+'" rows="2">'+esc(v)+'</textarea></div>';
+    }
+  }
+
+  function readField(f){
+    var el = $('f'+f.col);
+    var cur = S.values[f.col] || {};
+    if(!el || cur.formula || f.type==='percent') return null;
+    if(f.type==='personas'){
+      var list = Array.prototype.map.call(el.querySelectorAll('.pp'), function(d){
+        return { inst:d.querySelector('.pp-i').value, nom:d.querySelector('.pp-n').value, dni:d.querySelector('.pp-d').value, tel:d.querySelector('.pp-t').value };
+      });
+      var c = $('f'+f.col+'_c'); if(c){ var k = list.filter(function(p){ return (p.nom||p.dni||p.tel).trim(); }).length; c.textContent = k ? '('+k+')' : ''; }
+      return composePersonas(list);
+    }
+    if(f.type==='persona') return composePersona({nom:el.value, dni:$('f'+f.col+'_d').value, tel:$('f'+f.col+'_t').value});
+    return el.value.replace(/\s+$/,'');
+  }
+
+  function changes(){
+    var out = [];
+    S.fields.forEach(function(f){
+      var now = readField(f);
+      if(now === null || now === S.initial[f.col]) return;
+      out.push({ col:f.col, old:(S.values[f.col]||{}).v || '', val:now, label:(f.group? f.group+' › ':'')+f.label });
+    });
+    return out;
+  }
+  function dirtyCount(){ return S.school && S.fields.length ? changes().length : 0; }
+
+  function onInput(e){
+    if(e.target.tagName==='TEXTAREA') autoGrow(e.target);
+    var fd = e.target.closest('.field');
+    if(fd && fd.dataset.col){
+      var f = S.fields.filter(function(x){ return String(x.col)===fd.dataset.col; })[0];
+      fd.classList.toggle('changed', readField(f) !== S.initial[f.col]);
+    }
+    saveDraft();
+    updateBar();
+  }
+  function autoGrow(t){ t.style.height='auto'; t.style.height = Math.max(76, t.scrollHeight+2)+'px'; }
+  function updateBar(){
+    var c = dirtyCount();
+    $('btnSave').disabled = !c;
+    $('btnSave').textContent = c ? 'Guardar ' + c + (c===1?' cambio':' cambios') : 'Sin cambios';
+  }
+
+  $('form').addEventListener('change', onInput);
+  $('form').addEventListener('click', function(e){
+    var a = e.target.closest('[data-add]');
+    if(a){
+      var box = $(a.dataset.add); box.insertAdjacentHTML('beforeend', ppHtml({inst:'PNP', nom:'', dni:'', tel:''}));
+      box.lastElementChild.querySelector('.pp-n').focus();
+      box.dispatchEvent(new Event('input', {bubbles:true})); return;
+    }
+    var d = e.target.closest('[data-del]');
+    if(d){
+      var item = d.closest('.pp'), cont = item.parentNode;
+      if(cont.querySelectorAll('.pp').length > 1) item.remove();
+      else Array.prototype.forEach.call(item.querySelectorAll('input'), function(i){ i.value=''; });
+      cont.dispatchEvent(new Event('input', {bubbles:true})); return;
+    }
+    var b = e.target.closest('[data-now]'); if(!b) return;
+    var d = new Date(), el = $(b.dataset.now);
+    el.value = ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
+    el.dispatchEvent(new Event('input', {bubbles:true}));
+  });
+
+  // ---------- guardar ----------
+  $('btnSave').onclick = function(){
+    var ch = changes(); if(!ch.length) return;
+    $('mdName').textContent = 'N° ' + (S.school.n||'-') + ' · ' + S.school.local;
+    $('mdList').innerHTML = ch.map(function(c){ return '<div class="chg"><b>'+esc(c.label)+'</b>'+esc(c.val || '(vacío)')+'</div>'; }).join('');
+    $('modal').style.display = 'flex';
+  };
+  $('mdCancel').onclick = function(){ $('modal').style.display = 'none'; };
+  $('mdOk').onclick = function(){
+    $('modal').style.display = 'none';
+    var ch = changes().map(function(c){ return {col:c.col, old:c.old, val:c.val}; });
+    var b = $('btnSave'); b.disabled = true; b.textContent = 'Guardando…';
+    call('apiSave', ctx(), S.sheet, S.school.local, S.school.row, ch, S.reporter).then(function(r){
+      if(r.conflicts && r.conflicts.length){
+        var keep = {}, d = loadDraft() || {};
+        r.conflicts.forEach(function(c){ if(d[c.col] != null) keep[c.col] = d[c.col]; });
+        store(dKey(), JSON.stringify(keep));
+        toast('Guardado parcial. '+r.conflicts.length+' campo(s) fueron cambiados por otra persona; revisa y vuelve a enviar.', 'warn', 7000);
+      } else {
+        store(dKey(), '');
+        toast('✓ Guardado en ' + S.school.local, 'ok');
+      }
+      chooseSchool(S.school);
+    }).catch(function(e){
+      saveDraft();
+      toast(e === 'NET' ? 'No se pudo guardar: sin conexión o servidor ocupado. Tus datos quedan guardados en este celular; vuelve a tocar Guardar.' : 'No se pudo guardar: ' + e, 'err', 9000);
+      updateBar();
+    });
+  };
+
+  window.addEventListener('beforeunload', function(e){ if(dirtyCount()){ e.preventDefault(); e.returnValue=''; } });
+
+  boot();
+})();
+</script>
+</body>
+</html>
