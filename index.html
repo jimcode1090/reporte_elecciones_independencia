@@ -285,7 +285,7 @@ var API_URL = 'https://script.google.com/macros/s/AKfycbxWOdO6k0ltYbOEMJ5MCX6Ma3
   function pk(f){
     var path = (f.path && f.path.length) ? f.path : [f.label];
     var l = n(path[path.length - 1]), full = n(path.join(' '));
-    if(/ENCARGADO DEL REPLIE/.test(l)) return { ph:'Nombres y apellidos', id:'DNI' };
+    if(/ENCARGADO DEL REPLIE/.test(l)) return { ph:'Cargo: Nombres y Apellidos', id:'DNI' };
     if(f.type === 'personas') return null;
     if(/^(CONDUCTOR|CODUCTOR)$/.test(l) && /UNIDAD MOVIL/.test(full)) return { ph:'Nombres y apellidos', id:'DNI' };
     if(/FF\.?\s?(OO|00)/.test(full) && /^FF\.?\s?AA\.?$/.test(l)) return { ph:'Grado, nombres y apellidos', id:'DNI' };
