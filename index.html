@@ -65,6 +65,9 @@
   .chg{font-size:14px;border-bottom:1px solid var(--line);padding:8px 0;white-space:pre-wrap}
   .chg b{display:block;font-size:12px;color:var(--muted);font-weight:600}
   .loading{text-align:center;color:var(--muted);padding:30px 0}
+  .seg button{flex:1;background:#eef2ff;color:var(--accent);font-weight:600}
+  .seg button.on{background:var(--accent);color:#fff}
+  .seg{margin-bottom:8px}
   .hidden{display:none!important}
   select.sel-in{width:100%;font:inherit;font-size:16px;padding:11px 12px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;color:var(--ink)}
   #btnOut{position:absolute;right:12px;top:14px;background:rgba(255,255,255,.18);color:#fff;font-size:13px;padding:7px 11px}
@@ -238,6 +241,8 @@ var API_URL = 'https://script.google.com/macros/s/AKfycbxWOdO6k0ltYbOEMJ5MCX6Ma3
     if(m[3]){ var p = m[3].toLowerCase(); if(p==='p' && h<12) h+=12; if(p==='a' && h===12) h=0; }
     return (h<10?'0':'')+h+':'+m[2];
   }
+  // Campos de hora que también admiten la palabra NEGATIVO (apertura, cierre y llegada a ODPE)
+  function negOK(f){ return /APERTURA DEL LOCAL|CIERRE DEL LOCAL|LLEGADA A ODPE/.test(n(f.label)); }
   function toNum(s){ var x = String(s||'').replace(/[^\d.,-]/g,'').replace(',', '.'); return x===''?'':String(Number(x)); }
   function parsePersona(s){
     var o = {nom:'', dni:'', tel:''};
@@ -490,6 +495,13 @@ var API_URL = 'https://script.google.com/macros/s/AKfycbxWOdO6k0ltYbOEMJ5MCX6Ma3
       case 'number':
         return '<div class="field" data-col="'+f.col+'">'+head+'<input id="'+id+'" type="number" inputmode="numeric" min="0" value="'+esc(toNum(v))+'"></div>';
       case 'time':
+        if(negOK(f)){
+          var isNeg = n(v).trim() === 'NEGATIVO';
+          return '<div class="field" data-col="'+f.col+'" data-neg="'+(isNeg?'1':'0')+'">'+head+
+            '<div class="row seg"><button type="button" class="'+(isNeg?'':'on')+'" data-neg="'+id+'|0">Hora</button>'+
+            '<button type="button" class="'+(isNeg?'on':'')+'" data-neg="'+id+'|1">NEGATIVO</button></div>'+
+            '<div class="row'+(isNeg?' hidden':'')+'" id="'+id+'_h"><input id="'+id+'" type="time" value="'+esc(isNeg?'':toTime(v))+'"><button class="btn-ghost btn-sm" type="button" data-now="'+id+'">Ahora</button></div></div>';
+        }
         return '<div class="field" data-col="'+f.col+'">'+head+'<div class="row"><input id="'+id+'" type="time" value="'+esc(toTime(v))+'"><button class="btn-ghost btn-sm" type="button" data-now="'+id+'">Ahora</button></div></div>';
       case 'persona':
         var p = parsePersona(v);
@@ -519,6 +531,7 @@ var API_URL = 'https://script.google.com/macros/s/AKfycbxWOdO6k0ltYbOEMJ5MCX6Ma3
       var c = $('f'+f.col+'_c'); if(c){ var k = list.filter(function(p){ return (p.nom||p.dni||p.tel).trim(); }).length; c.textContent = k ? '('+k+')' : ''; }
       return composePersonas(list);
     }
+    if(f.type==='time' && negOK(f) && el.closest('.field').dataset.neg === '1') return 'NEGATIVO';
     if(f.type==='persona') return composePersona({nom:el.value, dni:$('f'+f.col+'_d').value, tel:$('f'+f.col+'_t').value});
     return el.value.replace(/\s+$/,'');
   }
@@ -553,6 +566,14 @@ var API_URL = 'https://script.google.com/macros/s/AKfycbxWOdO6k0ltYbOEMJ5MCX6Ma3
 
   $('form').addEventListener('change', onInput);
   $('form').addEventListener('click', function(e){
+    var ng = e.target.closest('[data-neg]');
+    if(ng && ng.tagName === 'BUTTON'){
+      var pr = ng.dataset.neg.split('|'), box = $(pr[0]).closest('.field'), on = pr[1] === '1';
+      box.dataset.neg = on ? '1' : '0';
+      $(pr[0] + '_h').classList.toggle('hidden', on);
+      Array.prototype.forEach.call(box.querySelectorAll('.seg button'), function(b){ b.classList.toggle('on', b === ng); });
+      box.dispatchEvent(new Event('input', {bubbles:true})); return;
+    }
     var a = e.target.closest('[data-add]');
     if(a){
       var box = $(a.dataset.add); box.insertAdjacentHTML('beforeend', ppHtml({inst:'PNP', nom:'', dni:'', tel:''}));
