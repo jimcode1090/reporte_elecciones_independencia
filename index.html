@@ -285,7 +285,7 @@ var API_URL = 'https://script.google.com/macros/s/AKfycbxWOdO6k0ltYbOEMJ5MCX6Ma3
   function pk(f){
     var path = (f.path && f.path.length) ? f.path : [f.label];
     var l = n(path[path.length - 1]), full = n(path.join(' '));
-    if(/ENCARGADO DEL REPLIE/.test(l)) return { ph:'Cargo: Nombres y Apellidos', id:'DNI' };
+    if(/ENCARGADO DEL REPLIE/.test(l)) return { ph:'Nombres y Apellidos', id:'DNI', cargo:true };
     if(f.type === 'personas') return null;
     if(/^(CONDUCTOR|CODUCTOR)$/.test(l) && /UNIDAD MOVIL/.test(full)) return { ph:'Nombres y apellidos', id:'DNI' };
     if(/FF\.?\s?(OO|00)/.test(full) && /^FF\.?\s?AA\.?$/.test(l)) return { ph:'Grado, nombres y apellidos', id:'DNI' };
@@ -293,11 +293,12 @@ var API_URL = 'https://script.google.com/macros/s/AKfycbxWOdO6k0ltYbOEMJ5MCX6Ma3
     return null;
   }
   function toNum(s){ var x = String(s||'').replace(/[^\d.,-]/g,'').replace(',', '.'); return x===''?'':String(Number(x)); }
-  function parsePersona(s){
-    var o = {nom:'', dni:'', tel:''};
+  function parsePersona(s, withCargo){
+    var o = {nom:'', dni:'', tel:'', cargo:''};
     String(s||'').split(/\n/).map(function(l){ return l.trim(); }).filter(Boolean).forEach(function(l){
       var u = n(l);
-      if(u.indexOf('DNI')===0 || u.indexOf('CIP')===0) o.dni = l.replace(/^(dni|cip)\s*[:.\-]?\s*/i,'');
+      if(withCargo && u.indexOf('CARGO')===0 && !o.cargo) o.cargo = l.replace(/^cargo\s*[:.\-]?\s*/i,'');
+      else if(u.indexOf('DNI')===0 || u.indexOf('CIP')===0) o.dni = l.replace(/^(dni|cip)\s*[:.\-]?\s*/i,'');
       else if(u.indexOf('TEL')===0 || u.indexOf('CEL')===0) o.tel = l.replace(/^(tel[eé]fono|telf?\.?|cel(ular)?)\s*[:.\-]?\s*/i,'');
       else if(!o.nom) o.nom = l; else o.nom += ' ' + l;
     });
@@ -330,6 +331,7 @@ var API_URL = 'https://script.google.com/macros/s/AKfycbxWOdO6k0ltYbOEMJ5MCX6Ma3
   }
   function composePersona(o, idLbl){
     var out = [];
+    if(o.cargo && o.cargo.trim()) out.push('CARGO: ' + o.cargo.trim());
     if(o.nom) out.push(o.nom.trim());
     if(o.dni) out.push((idLbl || 'DNI') + ': ' + o.dni.trim());
     if(o.tel) out.push('TEL: ' + o.tel.trim());
@@ -556,8 +558,9 @@ var API_URL = 'https://script.google.com/macros/s/AKfycbxWOdO6k0ltYbOEMJ5MCX6Ma3
     if(cur.formula) return '<div class="field">'+head+'<div class="ro">'+esc(v||'—')+'</div><div class="hint">Calculado en la hoja</div></div>';
     var k = pk(f);
     if(k){
-      var q = parsePersona(v);
+      var q = parsePersona(v, k.cargo);
       return '<div class="field persona" data-col="'+f.col+'">'+head+
+        (k.cargo ? '<input id="'+id+'_c" placeholder="Cargo" value="'+esc(q.cargo)+'">' : '')+
         '<input id="'+id+'" placeholder="'+k.ph+'" value="'+esc(q.nom)+'">'+
         '<div class="row"><input id="'+id+'_d" inputmode="numeric" placeholder="'+k.id+'" value="'+esc(q.dni)+'"><input id="'+id+'_t" type="tel" placeholder="Teléfono" value="'+esc(q.tel)+'"></div></div>';
     }
@@ -606,7 +609,7 @@ var API_URL = 'https://script.google.com/macros/s/AKfycbxWOdO6k0ltYbOEMJ5MCX6Ma3
     }
     if(f.type==='time' && negOK(f) && el.closest('.field').dataset.neg === '1') return 'NEGATIVO';
     var pkd = pk(f);
-    if(pkd || f.type==='persona') return composePersona({nom:el.value, dni:$('f'+f.col+'_d').value, tel:$('f'+f.col+'_t').value}, pkd ? pkd.id : 'DNI');
+    if(pkd || f.type==='persona') return composePersona({cargo:(pkd && pkd.cargo) ? $('f'+f.col+'_c').value : '', nom:el.value, dni:$('f'+f.col+'_d').value, tel:$('f'+f.col+'_t').value}, pkd ? pkd.id : 'DNI');
     return el.value.replace(/\s+$/,'');
   }
 
